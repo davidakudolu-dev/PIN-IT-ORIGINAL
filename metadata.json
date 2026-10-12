@@ -1,0 +1,6 @@
+{
+  "name": "Pinboard Notes",
+  "description": "A feature-packed hierarchical note-taking app with bubble pins, custom drag-ordering, and editable floating panels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
