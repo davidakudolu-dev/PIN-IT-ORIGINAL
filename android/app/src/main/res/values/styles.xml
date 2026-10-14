@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.PinIt" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">#FFC966</item>
+        <item name="android:windowBackground">#0A1024</item>
+    </style>
+</resources>

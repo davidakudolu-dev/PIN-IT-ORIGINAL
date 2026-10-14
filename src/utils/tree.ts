@@ -1,3 +1,4 @@
+import { sanitizeHtml } from './sanitize';
 import { NoteNode, SearchResult } from '../types';
 
 export const generateUid = () =>
@@ -59,7 +60,7 @@ export function deleteNodeById(node: NoteNode, id: string): void {
 export function stripHtml(html: string): string {
   if (!html) return '';
   const div = document.createElement('div');
-  div.innerHTML = html;
+  div.innerHTML = sanitizeHtml(html);
   div.querySelectorAll('br').forEach((br) => br.replaceWith('\n'));
   div.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6, li, blockquote').forEach((block) => {
     block.prepend('\n');
@@ -88,7 +89,7 @@ export function makeChipHtml(id: string, title: string, pinned: boolean = true):
 export function contentHasChip(html: string, id: string): boolean {
   if (!html) return false;
   const div = document.createElement('div');
-  div.innerHTML = html;
+  div.innerHTML = sanitizeHtml(html);
   return Array.from(div.querySelectorAll('.note-chip')).some((chip) => chip.getAttribute('data-note-id') === id);
 }
 

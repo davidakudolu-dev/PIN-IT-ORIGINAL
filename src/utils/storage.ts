@@ -1,8 +1,10 @@
+import { isNative } from './nativeBridge';
+import { loadNativeData, saveNativeData } from './nativeStorage';
 // Keep the original key and record shape. A bad record must never be replaced
 // with an empty tree just because parsing or validation failed.
 export const STORAGE_KEY = 'pinboard-notes-data-v5';
 
-function validateData(data: any): any {
+export function validateData(data: any): any {
   const ids = new Set<string>();
   const validateNode = (node: any) => {
     if (!node || typeof node.id !== 'string' || !node.id || ids.has(node.id) ||
@@ -41,6 +43,11 @@ function validateData(data: any): any {
 }
 
 export async function loadAppData(): Promise<any | null> {
+  if (isNative()) {
+    let legacy: string | null = null;
+    try { legacy = window.localStorage.getItem(STORAGE_KEY); } catch {}
+    return validateData(await loadNativeData(legacy));
+  }
   // The synchronous browser copy contains the most recent edits even if the
   // optional asynchronous host storage was still writing when a page closed.
   let local: string | null = null;
@@ -60,6 +67,7 @@ let pendingRemote: string | null = null;
 let remoteWrite: Promise<boolean> | null = null;
 
 export function saveAppData(data: any): Promise<boolean> {
+  if (isNative()) return saveNativeData(data);
   const serialized = JSON.stringify(data);
   let localSaved = false;
   try {

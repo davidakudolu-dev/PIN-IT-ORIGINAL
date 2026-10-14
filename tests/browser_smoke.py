@@ -5,6 +5,7 @@ Usage: python tests/browser_smoke.py --url http://127.0.0.1:3101 --output /tmp/p
 import argparse
 import json
 import traceback
+import uuid
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
@@ -27,10 +28,12 @@ def record(children):
     return dict(tree=note('root', 'Home', children), trash=[], theme='dark')
 
 def seed(page, data):
-    page.goto(URL, wait_until='networkidle')
-    page.evaluate('([key, data]) => localStorage.setItem(key, JSON.stringify(data))', [KEY, data])
-    page.reload(wait_until='networkidle')
+    marker='pinit-test-seed-'+uuid.uuid4().hex
+    page.add_init_script("if(location.origin==="+json.dumps(URL.rstrip('/'))+") { if(!sessionStorage.getItem("+json.dumps(marker)+")) {localStorage.setItem("+json.dumps(KEY)+",JSON.stringify("+json.dumps(data)+"));sessionStorage.setItem("+json.dumps(marker)+",'1');}}")
+    page.goto(URL,wait_until='networkidle')
     expect(page.locator('.pb-title-input')).to_have_value('Home')
+    assert page.evaluate('(key)=>JSON.parse(localStorage.getItem(key)).tree',KEY)==data['tree']
+
 
 def saved(page):
     return page.evaluate('(key) => JSON.parse(localStorage.getItem(key))', KEY)
@@ -45,6 +48,14 @@ def action(page, target, name):
     page.mouse.down(); page.wait_for_timeout(510); page.mouse.up()
     expect(page.locator('.sheet')).to_be_visible()
     page.locator('.sheet').get_by_role('button', name=name).click()
+
+def drag(page,source,target):
+    # Use the visible drag handle so a slow automation action cannot become
+    # the card's intentional 450 ms context-menu long press.
+    start=source.locator('.card-drag-handle').bounding_box();end=target.bounding_box()
+    page.mouse.move(start['x']+6,start['y']+6);page.mouse.down()
+    page.mouse.move(end['x']+60,end['y']+70,steps=1);page.mouse.up()
+
 
 def back(page):
     page.get_by_title('Back to parent note page', exact=True).click()
@@ -123,12 +134,12 @@ def ordering(page, ctx):
     expect(page.locator('.toast')).to_have_text('Pinned to top of page')
     action(page, card(page,'Gamma'), 'Pin note (Move to top by time pinned)')
     assert page.locator('.note-card .card-title').all_text_contents() == ['Gamma','Alpha','Beta']
-    card(page,'Gamma').drag_to(card(page,'Alpha'))
+    drag(page,card(page,'Gamma'),card(page,'Alpha'))
     assert page.locator('.note-card .card-title').all_text_contents() == ['Alpha','Gamma','Beta']
     action(page,card(page,'Alpha'),'Unpin note (Return to normal position)')
     action(page,card(page,'Gamma'),'Unpin note (Return to normal position)')
     assert page.locator('.note-card .card-title').all_text_contents() == ['Alpha','Beta','Gamma']
-    card(page,'Alpha').drag_to(card(page,'Gamma'))
+    drag(page,card(page,'Alpha'),card(page,'Gamma'))
     assert page.locator('.note-card .card-title').all_text_contents() == ['Beta','Gamma','Alpha']
     page.reload(wait_until='networkidle')
     assert page.locator('.note-card .card-title').all_text_contents() == ['Beta','Gamma','Alpha']
@@ -136,7 +147,7 @@ def ordering(page, ctx):
     for i,n in enumerate(children): n['order']=i
     seed(page,record([note('parent','Parent',children),note('sibling','Sibling')]))
     card(page,'Parent').click();grid(page)
-    card(page,'Child X').drag_to(card(page,'Child Z'))
+    drag(page,card(page,'Child X'),card(page,'Child Z'))
     assert page.locator('.note-card .card-title').all_text_contents() == ['Child Y','Child Z','Child X']
     assert [n['id'] for n in saved(page)['tree']['children']] == ['parent','sibling']
     page.reload(wait_until='networkidle');card(page,'Parent').click();grid(page)
@@ -220,7 +231,7 @@ def bubble(page,ctx):
     page.get_by_title('Bubble Settings',exact=True).click()
     sliders=page.locator('.bubble-settings-tray input[type=range]')
     sliders.nth(0).fill('0.5');sliders.nth(1).fill('620');sliders.nth(2).fill('600')
-    expect(page.locator('.float-panel-editable')).to_have_css('opacity','0.5')
+    expect(page.locator('.float-panel-editable')).to_have_css('opacity','1')
     panel=page.locator('.float-panel-editable').bounding_box()
     assert abs(panel['width']-620)<2 and abs(panel['height']-600)<2
     page.locator('.preset-pill').get_by_text('XL',exact=True).click()
@@ -232,6 +243,7 @@ def bubble(page,ctx):
     page.get_by_title('Bubble Settings',exact=True).click()
     page.get_by_title('Minimize to Bubble',exact=True).click()
     assert abs(dot.bounding_box()['width']-96)<1
+    expect(dot).to_have_css('opacity','0.5')
     page.set_viewport_size({'width':360,'height':640})
     box=dot.bounding_box();assert box['x']>=0 and box['x']+box['width']<=360
     dot.click();page.get_by_title('Close Bubble',exact=True).click()
@@ -262,22 +274,23 @@ def downloads(page,ctx):
     if shutil.which('pdftotext'):
         text=subprocess.run(['pdftotext',str(path),'-'],capture_output=True,text=True,check=True).stdout
         assert 'Exported content\n' in text and 'Second line' in text,text
-    page.get_by_title('Download Project Codebase as PDF',exact=True).click()
-    with page.expect_download() as info:page.locator('.export-pdf-main-btn').click()
-    path=OUT/'codebase.pdf';info.value.save_as(path);assert path.read_bytes().startswith(b'%PDF')
-    with page.expect_download() as info:page.locator('.export-zip-btn').click()
-    path=OUT/'in-app-source.zip';info.value.save_as(path)
-    import zipfile
+    # Project-code export has intentionally been replaced with portable data backups.
+    assert page.locator('[title*="Project Code"]').count() == 0
+    page.get_by_title('Settings',exact=True).click()
+    with page.expect_download() as info:page.get_by_role('button',name='Download Backup',exact=True).click()
+    path=OUT/'notes.pinit';info.value.save_as(path)
+    import zipfile,hashlib
     with zipfile.ZipFile(path) as z:
-        assert 'src/App.tsx' in z.namelist() and 'bun.lock' in z.namelist()
-        assert 'public/Pinboard_Notes_Codebase.pdf' in z.namelist()
-    page.get_by_role('button',name='Feature Specifications (10)',exact=True).click()
-    expect(page.get_by_text('Architectural & Functional Blueprint (10 Modules)',exact=True)).to_be_visible()
-    page.get_by_role('button',name='Source Code Files (17)',exact=True).click()
-    with page.expect_download() as info:page.get_by_title('Download this file',exact=True).click()
-    path=OUT/'exported-App.tsx';info.value.save_as(path)
-    assert 'export default function App()' in path.read_text()
-    page.get_by_title('Close modal',exact=True).click()
+        manifest=json.loads(z.read('manifest.json'));payload=z.read('data.json')
+        assert manifest['version']==1 and manifest['sha256']==hashlib.sha256(payload).hexdigest()
+        assert json.loads(payload)['state']['tree']['children'][0]['title']=='PDF note'
+    page.get_by_title('Close settings',exact=True).click()
+    back(page)
+    page.get_by_title('Settings',exact=True).click()
+    page.locator('input[type=file]').set_input_files(path)
+    page.get_by_role('button',name='Merge',exact=True).click()
+    assert len(saved(page)['tree']['children'])==1
+    page.get_by_title('Close settings',exact=True).click()
 
 
 def invalid_storage(page,ctx):
@@ -295,7 +308,7 @@ def storage_failure(page,ctx):
     page.reload(wait_until='networkidle')
     create(page,'Unsaved note','Keep this editor open')
     page.wait_for_timeout(2000)
-    expect(page.locator('.toast')).to_have_text('Could not save notes. Keep this page open and free browser storage.')
+    expect(page.locator('.toast')).to_have_text('Could not save notes. Keep this editor open; open Settings to retry or export a recovery copy.')
     expect(page.locator('.write-content')).to_have_text('Keep this editor open')
     assert page.evaluate('(key)=>localStorage.getItem(key)',KEY)==before
 
@@ -332,10 +345,10 @@ def responsive(page,ctx):
         page.screenshot(path=str(OUT/f'board-dark-{width}.png'))
         page.get_by_title('Switch to light theme',exact=True).click()
         page.screenshot(path=str(OUT/f'board-light-{width}.png'))
-        page.get_by_title('Download Project Code as PDF',exact=True).click()
-        r=page.get_by_title('Close modal',exact=True).bounding_box()
+        page.get_by_title('Settings',exact=True).click()
+        r=page.get_by_title('Close settings',exact=True).bounding_box()
         assert r['x']>=0 and r['x']+r['width']<=width and r['y']+r['height']<=height
-        page.get_by_title('Close modal',exact=True).click()
+        page.get_by_title('Close settings',exact=True).click()
         page.locator('.note-card').first.click()
         # All toolbar buttons must be reachable by horizontal scrolling.
         for title in ['Bold','Insert a nested pinned note chip here','Pop out this note into an editable floating bubble pin!']:
@@ -380,13 +393,110 @@ def touch(page,ctx):
     expect(page.locator('.write-content')).to_have_text('Touch bubble edit')
 
 
+def move_subtree(page,ctx):
+    child=note('child','Nested child');child.update(pinned=True,pinnedAt=2000,content='<b>Child text</b>')
+    moving=note('moving','Moving',[child]);moving['content']='<p>Keep formatting</p>'
+    seed(page,record([moving,note('target','Destination')]))
+    action(page,card(page,'Moving'),'Move to another note page')
+    dialog=page.get_by_role('dialog',name='Move note',exact=True)
+    assert dialog.get_by_role('button',name='Home / Moving',exact=True).count()==0
+    assert dialog.get_by_role('button',name='Home / Moving / Nested child',exact=True).count()==0
+    dialog.get_by_role('button',name='Home / Destination',exact=True).click()
+    page.reload(wait_until='networkidle')
+    data=saved(page);assert len(data['tree']['children'])==1
+    moved=data['tree']['children'][0]['children'][0]
+    assert moved['id']=='moving' and moved['content']=='<p>Keep formatting</p>'
+    assert moved['children'][0]['id']=='child' and moved['children'][0]['pinnedAt']==2000
+    card(page,'Destination').click();grid(page);card(page,'Moving').click()
+    expect(page.locator('.write-content')).to_have_text('Keep formatting')
+
+
+def safe_rich_text(page,ctx):
+    n=note('unsafe','Imported formatting')
+    n['content']='<p><b>Safe bold</b><img src="data:image/png;base64,iVBORw0KGgo=" onerror="window.injected=true"><script>window.injected=true</script><iframe srcdoc="bad"></iframe></p>'
+    seed(page,record([n]));card(page,'Imported formatting').click()
+    expect(page.locator('.write-content b')).to_have_text('Safe bold')
+    assert page.locator('.write-content script,.write-content iframe,.write-content [onerror]').count()==0
+    assert not page.evaluate('Boolean(window.injected)')
+    page.get_by_title('Pop out this note into an editable floating bubble pin!',exact=True).click()
+    page.locator('.float-bubble-unique').click()
+    assert page.locator('.float-panel-body-editable script,.float-panel-body-editable iframe,.float-panel-body-editable [onerror]').count()==0
+    assert not page.evaluate('Boolean(window.injected)')
+
+
+def backup_corpus(page,ctx):
+    import zipfile,hashlib,time
+    for size in [1,100,1000]:
+        children=[note(f'n-{i}',f'Note {i}') for i in range(size)]
+        children[-1]['content']='<b>Rich corpus</b><img src="data:image/png;base64,aGVsbG8=">'
+        children[-1]['archived']=True
+        data=record(children);data['trash']=[{'id':'bin-1','node':note('deleted','Deleted',[note('deep-deleted','Deleted child')]),'parentId':'root','deletedAt':2000}]
+        started=time.monotonic();seed(page,data)
+        page.get_by_title('Settings',exact=True).click()
+        with page.expect_download() as info:page.get_by_role('button',name='Download Backup',exact=True).click()
+        path=OUT/f'corpus-{size}.pinit';info.value.save_as(path)
+        with zipfile.ZipFile(path) as z:
+            raw=z.read('data.json');manifest=json.loads(z.read('manifest.json'))
+            assert hashlib.sha256(raw).hexdigest()==manifest['sha256']
+            restored=json.loads(raw)['state'];assert restored['tree']==data['tree'] and restored['trash']==data['trash']
+        print(f'backup corpus {size}: {time.monotonic()-started:.2f}s',flush=True)
+        page.get_by_title('Close settings',exact=True).click()
+    seed(page,record([note('local','Local note')]))
+    page.get_by_title('Settings',exact=True).click()
+    page.locator('input[type=file]').set_input_files(OUT/'corpus-100.pinit')
+    page.once('dialog',lambda d:d.dismiss())
+    page.get_by_role('button',name='Replace',exact=True).click()
+    assert saved(page)['tree']['children'][0]['id']=='local'
+    page.once('dialog',lambda d:d.accept())
+    page.get_by_role('button',name='Replace',exact=True).click()
+    assert len(saved(page)['tree']['children'])==100 and saved(page)['trash'][0]['node']['id']=='deleted'
+    assert page.evaluate("Object.keys(localStorage).some(k=>k.startsWith('pinit-pre-restore-'))")
+    tampered=OUT/'tampered.pinit'
+    with zipfile.ZipFile(OUT/'corpus-1.pinit') as z,zipfile.ZipFile(tampered,'w') as out:
+        out.writestr('manifest.json',z.read('manifest.json'));out.writestr('data.json',z.read('data.json')+b' ')
+    page.locator('input[type=file]').set_input_files(tampered)
+    expect(page.locator('.toast')).to_contain_text('checksum')
+    assert len(saved(page)['tree']['children'])==100
+
+
+def native_bridge_queue(page,ctx):
+    original=page.evaluate('(key)=>localStorage.getItem(key)',KEY)
+    data=record([note('native','Native stored note')])
+    page.add_init_script("""window.nativeDB=%s;window.nativeRevision=1;window.nativeWrites=[];window.nativeActive=0;window.nativeMax=0;window.nativeConflict=false;window.nativeResolve=[];
+    window.PinItNative={postMessage(raw){const q=JSON.parse(raw);if(q.action==='flushAck')return;
+      const reply=(result)=>this.onmessage({data:JSON.stringify({id:q.id,ok:true,result})});
+      if(q.action==='load') {reply({data:window.nativeDB,revision:window.nativeRevision});return;}
+      if(q.action==='save') {window.nativeActive++;window.nativeMax=Math.max(window.nativeMax,window.nativeActive);
+        setTimeout(()=>{window.nativeActive--;if(window.nativeConflict){window.nativeConflict=false;this.onmessage({data:JSON.stringify({id:q.id,ok:false,error:{code:'CONFLICT',message:'Concurrent edit'}})});return;}
+          window.nativeDB=q.payload.data;window.nativeRevision++;window.nativeWrites.push(q.payload);reply({data:window.nativeDB,revision:window.nativeRevision});},220);return;}
+      if(q.action==='resolveConflict'){window.nativeResolve.push(q.payload);setTimeout(()=>reply({data:window.nativeDB,revision:++window.nativeRevision,discarded:true}),100);return;}
+      if(q.action==='overlay.status'){reply({permission:false});return;}
+      reply({});
+    }};""" % json.dumps(data))
+    page.goto(URL,wait_until='networkidle');card(page,'Native stored note').click()
+    for i in range(8):page.locator('.write-content').fill(f'Native delayed edit {i}')
+    page.evaluate('window.PinIt.flush()')
+    assert page.evaluate('window.nativeMax')==1
+    assert 'Native delayed edit 7' in page.evaluate('window.nativeWrites.at(-1).data.tree.children[0].content')
+    assert page.evaluate('(key)=>localStorage.getItem(key)',KEY)==original
+    page.evaluate("window.nativeDB.tree.children[0].title='Remote title';window.dispatchEvent(new CustomEvent('pinit:native-state',{detail:{data:window.nativeDB,revision:++window.nativeRevision}}))")
+    expect(page.locator('.write-title-input')).to_have_value('Remote title')
+    page.evaluate('window.nativeConflict=true')
+    page.locator('.write-content').fill('First conflicting edit');page.wait_for_timeout(170)
+    page.locator('.write-content').fill('Newest conflicting edit')
+    page.evaluate('window.PinIt.flush()')
+    assert 'Newest conflicting edit' in page.evaluate('window.nativeResolve.at(-1).data.tree.children[0].content')
+    expect(page.locator('.write-content')).to_have_text('Native delayed edit 7')
+    assert page.evaluate('window.nativeMax')==1
+
+
 with sync_playwright() as playwright:
     browser=playwright.chromium.launch(executable_path=args.chromium,headless=True,args=['--no-sandbox'])
     for name,test in [('notes/nesting/rapid persistence/reopen',notes),('rich formatting/image',formatting),
                       ('root+nested pin/reorder',ordering),('archive/trash/subtree recovery',archive_trash),
                       ('orphan recovery',orphan_restore),('search/theme',search_theme),('bubble controls/sync',bubble),
-                      ('PDF/source/file downloads',downloads),('malformed records preserved',invalid_storage),('storage failure visible',storage_failure),
-                      ('host storage write serialization',host_storage),('five responsive widths',responsive),('touch drag/edit',touch)]:
+                      ('PDF/portable backup/merge',downloads),('malformed records preserved',invalid_storage),('storage failure visible',storage_failure),
+                      ('host storage write serialization',host_storage),('subtree move preserves data',move_subtree),('safe imported rich text',safe_rich_text),('1/100/1000 backup + replace + corruption',backup_corpus),('native bridge delayed writes/conflict',native_bridge_queue),('five responsive widths',responsive),('touch drag/edit',touch)]:
         mobile=test is touch
         context=browser.new_context(viewport={'width':390 if mobile else 1280,'height':844 if mobile else 900},has_touch=mobile,is_mobile=mobile,accept_downloads=True)
         page=context.new_page();page.set_default_timeout(7000);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))

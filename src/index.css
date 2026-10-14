@@ -1165,7 +1165,7 @@ mark.result-hit, mark.search-hit {
   color: var(--accent1);
 }
 
-.write-float-code {
+.write-float-settings {
   position: fixed;
   top: 18px;
   right: 68px;
@@ -1604,3 +1604,12 @@ mark.result-hit, mark.search-hit {
   .float-panel-title-input { flex-basis: 100%; }
   .float-panel-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* Backup controls use the existing sheet, theme and button styles. */
+.settings-dialog { width: 92vw; max-width: 540px; max-height: 85dvh; overflow: auto;
+  margin: auto; padding: 16px; border-radius: 22px; background: var(--sheet-bg);
+  border: 1px solid var(--sheet-border); color: var(--text); }
+.settings-dialog h3 { margin: 8px 0 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; }
+.settings-dialog p { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.settings-dialog .sheet-item { background: var(--icon-bg); margin: 8px 0; }
+.settings-dialog button:disabled { opacity: .55; cursor: wait; }

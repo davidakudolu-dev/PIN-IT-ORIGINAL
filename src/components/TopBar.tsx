@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, X, Sun, Moon, Search, Trash2, Archive, FileCode } from 'lucide-react';
+import { ChevronLeft, X, Sun, Moon, Search, Trash2, Archive, Settings } from 'lucide-react';
 import { NoteNode, ViewMode, ThemeMode } from '../types';
 
 interface TopBarProps {
@@ -14,7 +14,7 @@ interface TopBarProps {
   onOpenSearch: () => void;
   onTitleChange: (newTitle: string) => void;
   onOpenTrashForArea: () => void;
-  onOpenCodeExport: () => void;
+  onOpenSettings: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -29,7 +29,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenSearch,
   onTitleChange,
   onOpenTrashForArea,
-  onOpenCodeExport,
+  onOpenSettings,
 }) => {
   if (mode === 'write') return null; // Writing mode uses floating controls
 
@@ -52,11 +52,11 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <div className="pb-topbar-icons-right">
           <button
-            className="icon-btn code-pdf-btn"
-            onClick={onOpenCodeExport}
-            title="Download Project Code as PDF"
+            className="icon-btn"
+            onClick={onOpenSettings}
+            title="Settings"
           >
-            <FileCode size={18} />
+            <Settings size={18} />
           </button>
 
           <button

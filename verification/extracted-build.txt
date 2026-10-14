@@ -1,0 +1,76 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateDebugBuildConfig
+> Task :app:processDebugNavigationResources
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues
+> Task :app:compileDebugNavigationResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeDebugResources
+> Task :app:mergeDebugShaders
+> Task :app:javaPreCompileDebug
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:compressDebugAssets
+> Task :app:mergeDebugJniLibFolders
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeDebugNativeLibs
+> Task :app:mergeLibDexDebug
+
+> Task :app:stripDebugDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libdatastore_shared_counter.so. Run with --info option to learn more.
+
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:processDebugResources
+> Task :app:mergeExtDexDebug
+> Task :app:kaptGenerateStubsDebugKotlin
+> Task :app:kaptDebugKotlin
+
+> Task :app:compileDebugKotlin
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:74:92 'fun resume(value: Boolean, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:75:92 'fun resume(value: Boolean, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:76:76 'fun resume(value: Boolean, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:134:99 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:135:100 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:136:100 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:137:84 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:177:107 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:178:111 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:179:105 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/MainActivity.kt:180:84 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:145:56 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:246:111 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:247:115 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:248:109 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:249:88 'fun resume(value: Int, onCancellation: ((Throwable) -> Unit)?): Unit' is deprecated. Use the overload that also accepts the `value` and the coroutine context in lambda.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:274:22 'static field TRIM_MEMORY_RUNNING_LOW: Int' is deprecated. Deprecated in Java.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:305:90 'field scaledDensity: Float' is deprecated. Deprecated in Java.
+w: file:///workspace/pin-it-tools/pin-it-extracted-bikx7c6n/Pin-It/android/app/src/main/java/com/pinit/notes/overlay/FloatingNotesService.kt:306:87 'field scaledDensity: Float' is deprecated. Deprecated in Java.
+
+> Task :app:compileDebugJavaWithJavac
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics
+> Task :app:processDebugJavaRes
+> Task :app:mergeProjectDexDebug
+> Task :app:mergeDebugJavaResource
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+
+BUILD SUCCESSFUL in 26s
+41 actionable tasks: 41 executed

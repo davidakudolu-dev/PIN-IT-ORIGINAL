@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pin, Copy, Download, Archive, Trash2, FileCode } from 'lucide-react';
+import { Pin, Copy, Download, Archive, Trash2, FolderInput } from 'lucide-react';
 import { NoteNode } from '../types';
 
 interface ActionSheetProps {
@@ -10,7 +10,7 @@ interface ActionSheetProps {
   onDownloadPdf: (node: NoteNode) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
-  onOpenCodeExport?: () => void;
+  onMoveNote: (id: string) => void;
 }
 
 export const ActionSheet: React.FC<ActionSheetProps> = ({
@@ -21,7 +21,7 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({
   onDownloadPdf,
   onArchive,
   onDelete,
-  onOpenCodeExport,
+  onMoveNote,
 }) => {
   if (!longPressNode) return null;
 
@@ -46,17 +46,9 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({
           <Download size={16} /> Download Note as PDF
         </button>
 
-        {onOpenCodeExport && (
-          <button
-            className="sheet-item"
-            onClick={() => {
-              onClose();
-              onOpenCodeExport();
-            }}
-          >
-            <FileCode size={16} /> Download Project Code as PDF
-          </button>
-        )}
+        <button className="sheet-item" onClick={() => { onClose(); onMoveNote(longPressNode.id); }}>
+          <FolderInput size={16} /> Move to another note page
+        </button>
 
         <button className="sheet-item" onClick={() => onArchive(longPressNode.id)}>
           <Archive size={16} /> Archive note

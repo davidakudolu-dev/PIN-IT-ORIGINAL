@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { NoteNode, BubbleSettings } from '../types';
 import { stripHtml } from '../utils/tree';
+import { sanitizeHtml } from '../utils/sanitize';
 
 interface BubblePinProps {
   floatingNode: NoteNode | null;
@@ -20,6 +21,8 @@ interface BubblePinProps {
   onCopyNote: (node: NoteNode) => void;
   onShowToast: (msg: string) => void;
   onClose: () => void;
+  nativeOverlay?: boolean;
+  onMinimize?: () => void;
 }
 
 export const DEFAULT_BUBBLE_SETTINGS: BubbleSettings = {
@@ -41,8 +44,10 @@ export const BubblePin: React.FC<BubblePinProps> = ({
   onCopyNote,
   onShowToast,
   onClose,
+  nativeOverlay = false,
+  onMinimize,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(nativeOverlay);
   const [showSettings, setShowSettings] = useState(false);
   const [pos, setPos] = useState({ x: window.innerWidth - 90, y: window.innerHeight - 200 });
   const [panelPos, setPanelPos] = useState<{ x: number; y: number } | null>(null);
@@ -65,7 +70,7 @@ export const BubblePin: React.FC<BubblePinProps> = ({
   const pipBodyRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    setExpanded(false);
+    setExpanded(nativeOverlay);
     setShowSettings(false);
     pipWindowRef.current?.close();
     pipWindowRef.current = null;
@@ -102,14 +107,14 @@ export const BubblePin: React.FC<BubblePinProps> = ({
   // Sync content when floating node changes or opens
   useEffect(() => {
     if (expanded && editorRef.current && floatingNode) {
-      if (editorRef.current.innerHTML !== (floatingNode.content || '')) {
-        editorRef.current.innerHTML = floatingNode.content || '';
+      if (editorRef.current.innerHTML !== sanitizeHtml(floatingNode.content || '')) {
+        editorRef.current.innerHTML = sanitizeHtml(floatingNode.content || '');
       }
     }
     if (floatingNode && pipWindowRef.current && pipBodyRef.current) {
       const h = pipWindowRef.current.document.querySelector('h2');
       if (h) h.textContent = floatingNode.title || 'Untitled';
-      if (pipBodyRef.current.innerHTML !== (floatingNode.content || '')) pipBodyRef.current.innerHTML = floatingNode.content || '';
+      if (pipBodyRef.current.innerHTML !== sanitizeHtml(floatingNode.content || '')) pipBodyRef.current.innerHTML = sanitizeHtml(floatingNode.content || '');
     }
   }, [expanded, floatingNode]);
 
@@ -201,7 +206,7 @@ export const BubblePin: React.FC<BubblePinProps> = ({
 
       const body = pipWindow.document.createElement('div');
       body.className = 'pip-body';
-      body.innerHTML = floatingNode.content || '';
+      body.innerHTML = sanitizeHtml(floatingNode.content || '');
       body.contentEditable = 'true';
       pipBodyRef.current = body;
 
@@ -267,17 +272,18 @@ export const BubblePin: React.FC<BubblePinProps> = ({
           className="float-panel-editable"
           ref={panelRef}
           style={{
-            opacity: settings.transparency,
+            opacity: 1,
             width: `min(90vw, ${settings.expansionWidth}px)`,
             height: `min(85dvh, ${settings.expansionHeight}px)`,
             maxWidth: `min(94vw, ${settings.expansionWidth}px)`,
             maxHeight: `min(85dvh, ${settings.expansionHeight}px)`,
             ...(panelPos ? { left: panelPos.x, top: panelPos.y, right: 'auto', bottom: 'auto' } : {}),
+            ...(nativeOverlay ? { position: 'absolute', left: 0, top: 0, right: 'auto', bottom: 'auto', width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%' } as React.CSSProperties : {}),
           }}
         >
           {/* Header */}
           <div className="float-panel-header"
-            onPointerDown={handlePointerDown} onPointerMove={handlePointerMove}
+            onPointerDown={nativeOverlay ? undefined : handlePointerDown} onPointerMove={nativeOverlay ? undefined : handlePointerMove}
             onPointerUp={() => { bubbleDrag.current.dragging = false; }}
             onPointerCancel={() => { bubbleDrag.current.dragging = false; }}
           >
@@ -309,6 +315,7 @@ export const BubblePin: React.FC<BubblePinProps> = ({
               >
                 <Copy size={15} />
               </button>
+              {!nativeOverlay && <>
               <button
                 className="icon-btn mini"
                 onClick={handlePopOut}
@@ -316,9 +323,11 @@ export const BubblePin: React.FC<BubblePinProps> = ({
               >
                 <ExternalLink size={15} />
               </button>
+              </>}
               <button
                 className="icon-btn mini"
                 onClick={() => {
+                  if (nativeOverlay) { onMinimize?.(); return; }
                   setExpanded(false);
                   setShowSettings(false);
                 }}
@@ -346,7 +355,7 @@ export const BubblePin: React.FC<BubblePinProps> = ({
               </div>
 
               <div className="setting-group">
-                <label>Transparency ({Math.round(settings.transparency * 100)}%)</label>
+                <label>Bubble transparency ({Math.round(settings.transparency * 100)}%)</label>
                 <input
                   type="range"
                   min="0.2"
@@ -455,6 +464,10 @@ export const BubblePin: React.FC<BubblePinProps> = ({
               className="float-panel-body-editable"
               contentEditable
               suppressContentEditableWarning
+              onPaste={(event) => {
+                const html = event.clipboardData.getData('text/html');
+                if (html) { event.preventDefault(); document.execCommand('insertHTML', false, sanitizeHtml(html)); handleEditorInput(); }
+              }}
               onInput={handleEditorInput}
               placeholder="Start writing inside floating bubble..."
             />

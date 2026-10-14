@@ -1,0 +1,76 @@
+{
+  "url": "http://127.0.0.1:3103/",
+  "browser": "Chromium 154.0.8037.57",
+  "groups": [
+    {
+      "name": "notes/nesting/rapid persistence/reopen",
+      "status": "passed"
+    },
+    {
+      "name": "rich formatting/image",
+      "status": "passed"
+    },
+    {
+      "name": "root+nested pin/reorder",
+      "status": "passed"
+    },
+    {
+      "name": "archive/trash/subtree recovery",
+      "status": "passed"
+    },
+    {
+      "name": "orphan recovery",
+      "status": "passed"
+    },
+    {
+      "name": "search/theme",
+      "status": "passed"
+    },
+    {
+      "name": "bubble controls/sync",
+      "status": "passed"
+    },
+    {
+      "name": "PDF/portable backup/merge",
+      "status": "passed"
+    },
+    {
+      "name": "malformed records preserved",
+      "status": "passed"
+    },
+    {
+      "name": "storage failure visible",
+      "status": "passed"
+    },
+    {
+      "name": "host storage write serialization",
+      "status": "passed"
+    },
+    {
+      "name": "subtree move preserves data",
+      "status": "passed"
+    },
+    {
+      "name": "safe imported rich text",
+      "status": "passed"
+    },
+    {
+      "name": "1/100/1000 backup + replace + corruption",
+      "status": "passed"
+    },
+    {
+      "name": "native bridge delayed writes/conflict",
+      "status": "passed"
+    },
+    {
+      "name": "five responsive widths",
+      "status": "passed"
+    },
+    {
+      "name": "touch drag/edit",
+      "status": "passed"
+    }
+  ],
+  "passed": 17,
+  "failed": 0
+}

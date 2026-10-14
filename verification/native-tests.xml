@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.pinit.notes.DataAndBackupTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-10-14T15:34:00.737Z" hostname="35568f7a91d1" time="13.051">
+  <properties/>
+  <testcase name="closingBubblesKeepsNotesAndDataSurvivesDatabaseReopen" classname="com.pinit.notes.DataAndBackupTest" time="10.602"/>
+  <testcase name="backupRestoresImagesSettingsAndIndependentWindowPositions" classname="com.pinit.notes.DataAndBackupTest" time="0.251"/>
+  <testcase name="restoreRejectsStaleSummaryWithoutPartialWrites" classname="com.pinit.notes.DataAndBackupTest" time="0.156"/>
+  <testcase name="mergeAndReplaceAreTransactionalAndRecoverable" classname="com.pinit.notes.DataAndBackupTest" time="0.13"/>
+  <testcase name="unicodeAtChunkBoundaryIsNotDamaged" classname="com.pinit.notes.DataAndBackupTest" time="0.22"/>
+  <testcase name="unsafePathsUnsupportedVersionAndChecksumMismatchAreRejected" classname="com.pinit.notes.DataAndBackupTest" time="0.06"/>
+  <testcase name="largeImageContentRoundTripsWithoutCursorOverflow" classname="com.pinit.notes.DataAndBackupTest" time="0.782"/>
+  <testcase name="migrationPreservesThousandNotesAndIsIdempotent" classname="com.pinit.notes.DataAndBackupTest" time="0.224"/>
+  <testcase name="malformedMigrationLeavesDatabaseAndOriginalUntouched" classname="com.pinit.notes.DataAndBackupTest" time="0.083"/>
+  <testcase name="backupOneHundredAndThousandArePortable" classname="com.pinit.notes.DataAndBackupTest" time="0.221"/>
+  <testcase name="concurrentDifferentFieldsMergeAndSameFieldConflicts" classname="com.pinit.notes.DataAndBackupTest" time="0.163"/>
+  <testcase name="trashAndNestedRelationshipsRoundTrip" classname="com.pinit.notes.DataAndBackupTest" time="0.155"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

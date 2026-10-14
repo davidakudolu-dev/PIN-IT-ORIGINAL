@@ -13,10 +13,10 @@ npm run lint
 npm run build
 ```
 
-`prebuild` regenerates the full source PDF and the in-app source ZIP. `dist/`
+`prebuild` regenerates the historical development source PDF and source ZIP; `bunx vite build` builds without regenerating those archives. `dist/`
 contains production HTML, bundled JavaScript, CSS, the original font families,
 and the PDF/source downloads. No runtime server, API key, or backend is needed.
-The example Gemini and APP_URL variables are not referenced by this app.
+The example Gemini and APP_URL variables are not referenced by this app. Source-download controls have been removed from the rendered application; these historical assets are retained as development files.
 `npm run dev` is only for development; do not deploy the source index.html.
 
 ## Cloudflare Pages
@@ -52,13 +52,10 @@ produce a recovery message instead of being replaced by an empty tree.
 Browser storage belongs to an origin and browser profile. Deploying to a new
 Pages domain does not automatically move data from another domain, AI Studio,
 or a different device. Before changing origins, back up the existing record
-from the original site's browser storage. There is no note-data import/backup
-UI in the supplied source; project ZIP export exports code, not personal notes.
-Keep this application on a stable origin and back up important notes.
+from the original site's browser storage. Settings now provides portable `.pinit` note backups and Merge/Replace import. Back up from the original browser origin before changing domains. Browser Replace retains a local recovery copy. Android uses Room and the system file picker; see [ANDROID_README.md](ANDROID_README.md).
 
 The floating bubble is an in-browser panel. Optional Document Picture-in-Picture
-requires a compatible desktop browser and user activation. This is not an
-Android system-wide overlay. The original implementation supports one active
+requires a compatible desktop browser and user activation. The native Android build uses genuine system-wide WindowManager overlays; the web build retains the browser fallback. The original implementation supports one active
 floating note at a time. Note PDF export retains jsPDF's built-in fonts; arbitrary
 Unicode scripts/emoji and rich-text visual layout are not fully represented.
 
@@ -73,7 +70,7 @@ python3 tests/browser_smoke.py --url http://127.0.0.1:3101 --output /tmp/pinboar
 The tests use disposable browser contexts. They cover notes, nesting, rapid
 editing, refresh/reopen persistence, formatting/images, pinning/reordering,
 archive/trash restoration, orphan restoration, search, theme persistence,
-bubble controls/synchronization, PDFs/source downloads, malformed records,
+bubble controls/synchronization, note PDFs/portable backups, subtree moves, imported rich-text sanitization, native bridge queueing, malformed records,
 host-write ordering, visible storage-quota failures, five screen widths, and emulated touch input.
 Actual iOS Safari/Android devices and native desktop Picture-in-Picture require
 separate device checks. Test JSON results distinguish passing and failing groups.

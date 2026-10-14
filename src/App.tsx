@@ -21,7 +21,11 @@ import { BubblePin, DEFAULT_BUBBLE_SETTINGS } from './components/BubblePin';
 import { ActionSheet } from './components/ActionSheet';
 import { SearchModal } from './components/SearchModal';
 import { ArchiveTrashView } from './components/ArchiveTrashView';
-import { CodeExportModal } from './components/CodeExportModal';
+import { sanitizeHtml } from './utils/sanitize';
+import { SettingsDialog } from './components/SettingsDialog';
+import { MoveNoteDialog } from './components/MoveNoteDialog';
+import { isNative, nativeCall, exportPdf } from './utils/nativeBridge';
+import { subscribeNativeData, flushNativeData } from './utils/nativeStorage';
 
 export default function App() {
   const [tree, setTree] = useState<NoteNode | null>(null);
@@ -31,6 +35,11 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  useEffect(() => {
+    const report = () => setSaveError(true);
+    window.addEventListener('pinit:save-error', report);
+    return () => window.removeEventListener('pinit:save-error', report);
+  }, []);
 
   const [stack, setStack] = useState<string[]>(['root']);
   const [mode, setMode] = useState<ViewMode>('board');
@@ -40,7 +49,8 @@ export default function App() {
 
   const [toast, setToast] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [codeExportOpen, setCodeExportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [moveId, setMoveId] = useState<string | null>(null);
   const [trashAreaId, setTrashAreaId] = useState<string>('root');
 
   const toastTimeout = useRef<any>(null);
@@ -69,6 +79,34 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!loaded || !isNative()) return;
+    return subscribeNativeData((data) => {
+      setTree(data.tree); setTrash(data.trash || []); setTheme(data.theme || 'dark'); setLoadError(false);
+      setBubbleSettings({ ...DEFAULT_BUBBLE_SETTINGS, ...data.bubbleSettings }); setSaveError(false);
+      setStack(previous => findPathIds(data.tree, previous[previous.length - 1]) || ['root']);
+    });
+  }, [loaded]);
+
+  useEffect(() => {
+    const back = () => {
+      void flushNativeData().then(() => {
+        if (settingsOpen) setSettingsOpen(false);
+        else if (mode === 'archive' || mode === 'trash') setMode('board');
+        else if (stack.length > 1) { const next = stack.slice(0, -1); setStack(next); if (next.length === 1) setMode('board'); }
+      }).catch(() => setSaveError(true));
+    };
+    (window as any).PinIt.canGoBack = () => mode !== 'board' || stack.length > 1 || settingsOpen;
+    window.addEventListener('pinit:back', back);
+    return () => window.removeEventListener('pinit:back', back);
+  }, [mode, stack, settingsOpen]);
+
+  useEffect(() => {
+    const restored = () => { setStack(['root']); setMode('board'); setSettingsOpen(false); };
+    window.addEventListener('pinit:restore-complete', restored);
+    return () => window.removeEventListener('pinit:restore-complete', restored);
   }, []);
 
   // Sync theme to root element
@@ -165,6 +203,7 @@ export default function App() {
   };
 
   const handleBack = () => {
+    if (isNative()) void flushNativeData().catch(() => setSaveError(true));
     if (stack.length <= 1) return;
     const next = stack.slice(0, -1);
     setStack(next);
@@ -188,6 +227,11 @@ export default function App() {
   // Copy note content
   const handleCopyNote = async (node: NoteNode) => {
     const text = `${node.title || 'Untitled Note'}\n\n${stripHtml(node.content)}`;
+    if (isNative()) {
+      try { await nativeCall('clipboard', { text }); showToast('Copied note content'); }
+      catch (error) { showToast((error as Error).message); }
+      setLongPressId(null); return;
+    }
     let success = false;
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -253,7 +297,8 @@ export default function App() {
       });
 
       const fileName = (node.title || 'note').replace(/[^a-z0-9\-_ ]/gi, '').trim() || 'note';
-      doc.save(`${fileName}.pdf`);
+      if (isNative()) await exportPdf(`${fileName}.pdf`, doc.output('arraybuffer'));
+      else doc.save(`${fileName}.pdf`);
       showToast('PDF downloaded');
     } catch (e) {
       showToast('Could not generate PDF');
@@ -383,7 +428,10 @@ export default function App() {
   };
 
   if (loadError) {
-    return <div className="pb-shell pb-loading"><span>Saved notes could not be read. Your stored data has been left unchanged. Back it up before repairing the storage record, then reload.</span></div>;
+    return <div className="pb-shell pb-loading"><span>Saved notes could not be read. Your stored data has been left unchanged. Back it up before repairing the storage record, then reload.</span>
+      {isNative() && <><button className="sheet-item" onClick={() => setSettingsOpen(true)}>Recovery options</button>
+        <SettingsDialog isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} data={null} onRestore={() => {}} onShowToast={showToast} saveError={false} /></>}
+    </div>;
   }
 
   if (!loaded || !tree || !currentNode) {
@@ -412,7 +460,7 @@ export default function App() {
           setTrashAreaId(currentId);
           setMode('trash');
         }}
-        onOpenCodeExport={() => setCodeExportOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {/* Main Board View */}
@@ -437,11 +485,15 @@ export default function App() {
           onTitleChange={handleTitleChange}
           onContentChange={handleContentChange}
           onInsertNestedNote={handleInsertNestedNote}
-          onPopOutBubble={() => setFloatingId(currentId)}
+          onPopOutBubble={async () => {
+            if (!isNative()) { setFloatingId(currentId); return; }
+            try { await flushNativeData(); await nativeCall('overlay.open', { noteId: currentId }); showToast('Floating note requested'); }
+            catch (error) { showToast((error as Error).message); }
+          }}
           onNavigateToNote={handleOpenNote}
           onLongPressNote={setLongPressId}
           onShowToast={showToast}
-          onOpenCodeExport={() => setCodeExportOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
           onDownloadCurrentNotePdf={() => currentNode && handleDownloadPdf(currentNode)}
         />
       )}
@@ -483,7 +535,7 @@ export default function App() {
         onDownloadPdf={handleDownloadPdf}
         onArchive={handleArchiveNote}
         onDelete={handleDeleteNote}
-        onOpenCodeExport={() => setCodeExportOpen(true)}
+        onMoveNote={setMoveId}
       />
 
       {/* Global Search Modal */}
@@ -494,15 +546,25 @@ export default function App() {
         onSelectResult={handleSelectSearchResult}
       />
 
-      {/* Codebase PDF & Source Export Modal */}
-      <CodeExportModal
-        isOpen={codeExportOpen}
-        onClose={() => setCodeExportOpen(false)}
-        onShowToast={showToast}
-      />
+      <SettingsDialog isOpen={settingsOpen} onClose={() => setSettingsOpen(false)}
+        data={{ tree, trash, theme, bubbleSettings }} onRestore={(data) => {
+          setTree(data.tree); setTrash(data.trash || []); setTheme(data.theme || 'dark'); setStack(['root']); setMode('board');
+          setBubbleSettings({ ...DEFAULT_BUBBLE_SETTINGS, ...data.bubbleSettings });
+        }} onShowToast={showToast} saveError={saveError} />
+      <MoveNoteDialog tree={tree} noteId={moveId} onClose={() => setMoveId(null)} onMove={(targetId) => {
+        if (!moveId) return;
+        updateTree((t) => {
+          const note = findNode(t, moveId); const oldParent = findParentNode(t, moveId); const parent = findNode(t, targetId);
+          if (!note || !parent || findNode(note, targetId) || oldParent?.id === targetId) return;
+          deleteNodeById(t, moveId); note.order = parent.children.length; parent.children.push(note);
+          if (oldParent) { const div = document.createElement('div'); div.innerHTML = sanitizeHtml(oldParent.content);
+            div.querySelectorAll('.note-chip').forEach(chip => { if (chip.getAttribute('data-note-id') === moveId) chip.remove(); }); oldParent.content = div.innerHTML; }
+          if (parent.id !== 'root' && !contentHasChip(parent.content, note.id)) parent.content += makeChipHtml(note.id, note.title, note.pinned) + '<br>';
+        }); setMoveId(null); showToast('Moved note to selected page');
+      }} />
 
       {/* Notification Toast */}
-      {(saveError || toast) && <div className="toast">{saveError ? 'Could not save notes. Keep this page open and free browser storage.' : toast}</div>}
+      {(saveError || toast) && <div className="toast">{saveError ? 'Could not save notes. Keep this editor open; open Settings to retry or export a recovery copy.' : toast}</div>}
     </div>
   );
 }

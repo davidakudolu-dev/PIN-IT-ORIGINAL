@@ -11,9 +11,11 @@ import {
   Pin,
   Sparkles,
   Download,
-  FileCode,
+  Settings,
 } from 'lucide-react';
 import { NoteNode } from '../types';
+import { isNative, nativeCall } from '../utils/nativeBridge';
+import { sanitizeHtml } from '../utils/sanitize';
 import { makeChipHtml, refreshChipTitles, findNode } from '../utils/tree';
 
 interface EditorViewProps {
@@ -29,7 +31,7 @@ interface EditorViewProps {
   onNavigateToNote: (id: string) => void;
   onLongPressNote: (id: string) => void;
   onShowToast: (msg: string) => void;
-  onOpenCodeExport: () => void;
+  onOpenSettings: () => void;
   onDownloadCurrentNotePdf: () => void;
 }
 
@@ -46,7 +48,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   onNavigateToNote,
   onLongPressNote,
   onShowToast,
-  onOpenCodeExport,
+  onOpenSettings,
   onDownloadCurrentNotePdf,
 }) => {
   const [editorFocused, setEditorFocused] = useState(false);
@@ -60,8 +62,8 @@ export const EditorView: React.FC<EditorViewProps> = ({
   // Sync content into DOM editor element when current note changes
   useEffect(() => {
     if (editorRef.current && currentNode) {
-      if (displayedNoteId.current !== currentNode.id || editorRef.current.innerHTML !== (currentNode.content || '')) {
-        editorRef.current.innerHTML = currentNode.content || '';
+      if (displayedNoteId.current !== currentNode.id || editorRef.current.innerHTML !== sanitizeHtml(currentNode.content || '')) {
+        editorRef.current.innerHTML = sanitizeHtml(currentNode.content || '');
       }
       displayedNoteId.current = currentNode.id;
       refreshChipTitles(editorRef.current, tree);
@@ -166,7 +168,12 @@ export const EditorView: React.FC<EditorViewProps> = ({
     sel?.addRange(range);
   };
 
-  const handleImportImage = () => {
+  const handleImportImage = async () => {
+    if (isNative()) {
+      try { const result = await nativeCall('image.pick'); exec('insertImage', result.url); }
+      catch (error) { onShowToast((error as Error).message); }
+      return;
+    }
     let url: string | null = null;
     try {
       url = window.prompt('Paste image URL (e.g. https://... or data:image...)');
@@ -193,14 +200,14 @@ export const EditorView: React.FC<EditorViewProps> = ({
 
       {/* Floating Header Actions in Writing Mode */}
       <button
-        className="icon-btn write-float-code"
+        className="icon-btn write-float-settings"
         onClick={(e) => {
           e.stopPropagation();
-          onOpenCodeExport();
+          onOpenSettings();
         }}
-        title="Download Project Codebase as PDF"
+        title="Settings"
       >
-        <FileCode size={18} />
+        <Settings size={18} />
       </button>
 
       <button
@@ -240,6 +247,10 @@ export const EditorView: React.FC<EditorViewProps> = ({
           className="write-content"
           contentEditable
           suppressContentEditableWarning
+          onPaste={(event) => {
+            const html = event.clipboardData.getData('text/html');
+            if (html) { event.preventDefault(); exec('insertHTML', sanitizeHtml(html)); }
+          }}
           onInput={handleEditorInput}
           onClick={handleEditorClick}
           onPointerDown={handleChipPointerDown}
